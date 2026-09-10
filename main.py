@@ -124,7 +124,7 @@ st.plotly_chart(fig, use_container_width=True)
 st.subheader("💡 이 그래프로 알 수 있는 것")
 
 st.info(
-    "영화를 선택하면 날짜에 따라 일관객 수가 어떻게 증가하거나 감소했는지 알 수 있습니다."
+    "주말마다 일관객 수가 평일보다 훨씬 많다."
 )
 
 
