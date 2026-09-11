@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -66,7 +67,6 @@ st.write(
     "영화를 선택하면 해당 영화의 날짜별 일관객 변화를 확인할 수 있습니다."
 )
 
-# 영화 목록
 movie_list = sorted(df["영화명"].dropna().unique())
 
 selected_movie = st.selectbox(
@@ -74,7 +74,6 @@ selected_movie = st.selectbox(
     movie_list
 )
 
-# 선택한 영화의 데이터
 movie_df = df[df["영화명"] == selected_movie].copy()
 movie_df = movie_df.sort_values("날짜")
 
@@ -133,9 +132,7 @@ st.write(
 )
 
 
-# ------------------------------------------------------------
 # 영화별 일관객 합계
-# ------------------------------------------------------------
 movie_total = (
     df.dropna(subset=["영화명", "일관객"])
     .groupby("영화명", as_index=False)["일관객"]
@@ -143,13 +140,10 @@ movie_total = (
     .sort_values("일관객", ascending=False)
 )
 
-# 상위 5편
 top5_movies = movie_total.head(5)["영화명"].tolist()
 
 
-# ------------------------------------------------------------
-# 상위 5편의 날짜별 데이터
-# ------------------------------------------------------------
+# 상위 5편 데이터
 top5_df = df[
     df["영화명"].isin(top5_movies)
 ].copy()
@@ -217,9 +211,7 @@ st.write(
 )
 
 
-# ------------------------------------------------------------
-# 날짜별 일관객 합계 계산
-# ------------------------------------------------------------
+# 날짜별 일관객 합계
 daily_total = (
     df.dropna(subset=["날짜", "일관객"])
     .groupby("날짜", as_index=False)["일관객"]
@@ -228,9 +220,7 @@ daily_total = (
 )
 
 
-# ------------------------------------------------------------
-# 일관객 합계가 가장 큰 3일 찾기
-# ------------------------------------------------------------
+# 일관객 합계가 가장 큰 3일
 top3_days = (
     daily_total
     .nlargest(3, "일관객")
@@ -254,30 +244,22 @@ fig3 = px.area(
 )
 
 
-# ------------------------------------------------------------
 # 상위 3일 표시
-# ------------------------------------------------------------
 for i, row in top3_days.iterrows():
 
-    # 날짜를 보기 좋은 형태로 변경
     date_text = row["날짜"].strftime("%Y-%m-%d")
-
-    # 그래프 위에 표시할 번호
-    rank_text = f"{i + 1}위<br>{date_text}"
 
     fig3.add_annotation(
         x=row["날짜"],
         y=row["일관객"],
-        text=rank_text,
+        text=f"{i + 1}위<br>{date_text}",
         showarrow=True,
         arrowhead=2,
         arrowsize=1,
         arrowwidth=2,
         ax=0,
         ay=-60,
-        font=dict(
-            size=13
-        ),
+        font=dict(size=13),
         bgcolor="white",
         bordercolor="gray",
         borderwidth=1,
@@ -285,9 +267,6 @@ for i, row in top3_days.iterrows():
     )
 
 
-# ------------------------------------------------------------
-# 그래프 3 설정
-# ------------------------------------------------------------
 fig3.update_traces(
     hovertemplate="날짜: %{x|%Y-%m-%d}<br>"
                   "10위권 일관객 합계: %{y:,}명<extra></extra>"
@@ -300,19 +279,17 @@ fig3.update_layout(
     yaxis_title="10위권 일관객 합계 (명)"
 )
 
-
 st.plotly_chart(
     fig3,
     use_container_width=True
 )
 
 
-# ------------------------------------------------------------
-# 상위 3일 간단한 정보
-# ------------------------------------------------------------
+# 상위 3일 정보
 st.write("### 🏆 일관객 합계가 가장 컸던 날")
 
 for i, row in top3_days.iterrows():
+
     date_text = row["날짜"].strftime("%Y년 %m월 %d일")
 
     st.write(
@@ -336,16 +313,92 @@ st.text_area(
 
 # ============================================================
 # 그래프 4
+# 영화별 일관객 합계 TOP 10
 # ============================================================
 st.divider()
 
-st.header("📊 그래프 4")
+st.header("📊 그래프 4. 영화별 일관객 합계 TOP 10")
 
-st.info("여기에 다음 그래프를 추가할 예정입니다.")
+st.write(
+    "이 기간 동안 일관객의 합계가 가장 큰 영화 10편을 비교합니다."
+)
+
+
+# ------------------------------------------------------------
+# 영화별 일관객 합계 + 10위권에 든 날수 계산
+# ------------------------------------------------------------
+movie_summary = (
+    df.dropna(subset=["영화명", "일관객"])
+    .groupby("영화명")
+    .agg(
+        일관객합계=("일관객", "sum"),
+        상영일수=("날짜", "nunique")
+    )
+    .reset_index()
+)
+
+
+# 일관객 합계 기준 TOP 10
+top10_movies = (
+    movie_summary
+    .sort_values("일관객합계", ascending=False)
+    .head(10)
+    .copy()
+)
+
+
+# ------------------------------------------------------------
+# 가로 막대그래프
+# ------------------------------------------------------------
+fig4 = px.bar(
+    top10_movies,
+    x="일관객합계",
+    y="영화명",
+    orientation="h",
+    custom_data=["상영일수"],
+    title="영화별 일관객 합계 TOP 10",
+    labels={
+        "영화명": "영화",
+        "일관객합계": "일관객 합계"
+    }
+)
+
+
+# 마우스를 올렸을 때 표시되는 정보
+fig4.update_traces(
+    hovertemplate=
+        "<b>%{y}</b><br>"
+        "일관객 합계: %{x:,}명<br>"
+        "10위권에 든 날수: %{customdata[0]}일"
+        "<extra></extra>"
+)
+
+
+# 관객이 많은 영화가 위에 오도록 설정
+fig4.update_layout(
+    height=600,
+    yaxis={
+        "categoryorder": "total ascending"
+    },
+    xaxis_title="일관객 합계 (명)",
+    yaxis_title="영화"
+)
+
+
+st.plotly_chart(
+    fig4,
+    use_container_width=True
+)
+
+
+# ------------------------------------------------------------
+# 그래프 4 설명
+# ------------------------------------------------------------
+st.subheader("💡 이 그래프로 알 수 있는 것")
 
 st.text_area(
-    "이 그래프로 알 수 있는 것",
-    placeholder="그래프 4를 만든 후 알 수 있는 내용을 직접 작성하세요.",
+    "내용을 직접 입력하세요.",
+    placeholder="예: 이 기간 동안 누적해서 가장 많은 관객을 모은 영화가 무엇인지 비교할 수 있다.",
     height=100,
     key="graph4_explanation"
 )
